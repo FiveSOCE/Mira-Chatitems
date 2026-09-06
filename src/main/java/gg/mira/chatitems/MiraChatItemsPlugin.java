@@ -2,6 +2,7 @@ package gg.mira.chatitems;
 
 import com.mira.core.api.MiraCore;
 import com.mira.core.api.MiraCoreProvider;
+import io.papermc.paper.chat.ChatRenderer;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
@@ -54,11 +55,10 @@ public final class MiraChatItemsPlugin extends JavaPlugin implements Listener, C
         if (!containsToken(raw)) return;
 
         Player player = event.getPlayer();
-
-        // Preserve Paper's normal chat pipeline completely. We only replace the
-        // token inside the message component, so prefixes, nicknames, ranks,
-        // formatting and any renderer supplied by another chat plugin remain.
         Component transformed;
+
+        // Inventory/item access must stay on the primary thread even though
+        // Paper's chat event is normally asynchronous.
         if (Bukkit.isPrimaryThread()) {
             transformed = transformMessage(player, raw);
         } else {
@@ -78,7 +78,13 @@ public final class MiraChatItemsPlugin extends JavaPlugin implements Listener, C
             }
         }
 
-        event.message(transformed);
+        // Critical: do not replace/cancel/resend the chat line. Wrap whatever
+        // renderer is already responsible for ranks, prefixes, nicknames,
+        // suffixes and the normal ': message' format, and only substitute the
+        // message component that renderer receives.
+        ChatRenderer original = event.renderer();
+        event.renderer((source, sourceDisplayName, ignoredMessage, viewer) ->
+                original.render(source, sourceDisplayName, transformed, viewer));
     }
 
     private Component transformMessage(Player player, String raw) {
