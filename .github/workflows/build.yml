@@ -55,5 +55,5 @@ jobs:
             gh release create "$TAG" "$JAR" \
               --target "${{ github.sha }}" \
               --title "MiraChatItems $TAG" \
-              --notes "Polishes chat-link presentation. [item] is now hover-only using the native Minecraft item tooltip and renders as [Item Name]. Inventory links render with the player's nickname followed by [Inventory] in yellow, ender chest links use [Enderchest] in gold, and standalone link messages no longer duplicate the normal chat-name wrapper."
+              --notes "Preserves the server's existing chat renderer when replacing MiraChatItems tokens. Rank prefixes, nicknames, usernames and normal chat formatting remain intact; only [item], [inv], [echest] and [backpack] inside the message body are replaced with their MiraChatItems components."
           fi
