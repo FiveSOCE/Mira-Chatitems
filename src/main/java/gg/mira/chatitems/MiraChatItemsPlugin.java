@@ -6,6 +6,7 @@ import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
@@ -24,6 +25,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class MiraChatItemsPlugin extends JavaPlugin implements Listener, CommandExecutor {
+    private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacyAmpersand();
     private final Map<String, Snapshot> snapshots = new ConcurrentHashMap<>();
     private MiraCore core;
 
@@ -57,7 +59,14 @@ public final class MiraChatItemsPlugin extends JavaPlugin implements Listener, C
     }
 
     private void sendLinkedMessage(Player player, String raw, Set<net.kyori.adventure.audience.Audience> viewers) {
-        Component message = Component.text("<" + player.getName() + "> ", NamedTextColor.WHITE);
+        String trimmed = raw.trim();
+        boolean linkOnly = nextToken(trimmed, 0) != null && nextToken(trimmed, 0).start() == 0
+                && nextToken(trimmed, 0).end() == trimmed.length();
+
+        Component message = linkOnly
+                ? Component.empty()
+                : Component.text("<").append(player.displayName()).append(Component.text("> "));
+
         int cursor = 0;
         while (cursor < raw.length()) {
             TokenMatch match = nextToken(raw, cursor);
@@ -66,33 +75,68 @@ public final class MiraChatItemsPlugin extends JavaPlugin implements Listener, C
                 break;
             }
             if (match.start() > cursor) message = message.append(Component.text(raw.substring(cursor, match.start())));
+
+            if (match.type() == Type.ITEM) {
+                ItemStack held = player.getInventory().getItemInMainHand();
+                if (held.getType().isAir()) {
+                    core.messages().send(player, "&cYou are not holding an item to link.");
+                    message = message.append(Component.text(match.raw()));
+                } else {
+                    message = message.append(itemLink(held));
+                }
+                cursor = match.end();
+                continue;
+            }
+
             Snapshot snapshot = createSnapshot(player, match.type());
             if (snapshot == null) {
                 message = message.append(Component.text(match.raw()));
             } else {
                 snapshots.put(snapshot.id(), snapshot);
-                message = message.append(Component.text("[" + match.label() + "]", NamedTextColor.LIGHT_PURPLE)
-                        .clickEvent(ClickEvent.runCommand("/chatitem view " + snapshot.id()))
-                        .hoverEvent(HoverEvent.showText(Component.text("Click to view " + player.getName() + "'s " + match.label()))));
+                message = message.append(storageLink(player, match.type(), snapshot));
             }
             cursor = match.end();
         }
         for (var viewer : viewers) viewer.sendMessage(message);
     }
 
+    private Component itemLink(ItemStack held) {
+        Component name = itemName(held);
+        Component rendered = Component.text("[", NamedTextColor.WHITE)
+                .append(name)
+                .append(Component.text("]", NamedTextColor.WHITE));
+        return rendered.hoverEvent(held.asHoverEvent());
+    }
+
+    private Component storageLink(Player player, Type type, Snapshot snapshot) {
+        Component owner = player.displayName().append(Component.text("'s "));
+        Component label = switch (type) {
+            case INVENTORY -> Component.text("Inventory", NamedTextColor.YELLOW);
+            case ENDERCHEST -> Component.text("Enderchest", NamedTextColor.GOLD);
+            case BACKPACK -> Component.text("Backpack", NamedTextColor.LIGHT_PURPLE);
+            default -> Component.text(type.name());
+        };
+
+        Component link = Component.text("[", NamedTextColor.WHITE)
+                .append(label)
+                .append(Component.text("]", NamedTextColor.WHITE))
+                .clickEvent(ClickEvent.runCommand("/chatitem view " + snapshot.id()))
+                .hoverEvent(HoverEvent.showText(Component.text("Click to view")));
+
+        return owner.append(link);
+    }
+
+    private Component itemName(ItemStack item) {
+        if (item.hasItemMeta() && item.getItemMeta().hasDisplayName() && item.getItemMeta().displayName() != null) {
+            return item.getItemMeta().displayName();
+        }
+        return Component.translatable(item.getType().translationKey());
+    }
+
     private Snapshot createSnapshot(Player player, Type type) {
         ItemStack[] items;
         String title;
         switch (type) {
-            case ITEM -> {
-                ItemStack held = player.getInventory().getItemInMainHand();
-                if (held.getType().isAir()) {
-                    core.messages().send(player, "&cYou are not holding an item to link.");
-                    return null;
-                }
-                items = new ItemStack[]{held.clone()};
-                title = player.getName() + "'s Item";
-            }
             case INVENTORY -> {
                 items = new ItemStack[45];
                 ItemStack[] storage = player.getInventory().getStorageContents();
