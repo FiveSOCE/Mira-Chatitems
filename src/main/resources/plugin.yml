@@ -5,7 +5,7 @@ api-version: '1.21'
 author: FiveSOCE
 description: Clickable view-only chat links for items, inventories, ender chests and backpacks.
 depend: [MiraCore]
-softdepend: [MiraBackpacks]
+softdepend: [MiraBackpacks, Essentials, EssentialsChat]
 commands:
   chatitem:
     description: View MiraChatItems links and usage.
