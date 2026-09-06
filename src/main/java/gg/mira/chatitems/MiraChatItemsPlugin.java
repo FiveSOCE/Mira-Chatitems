@@ -2,9 +2,7 @@ package gg.mira.chatitems;
 
 import com.mira.core.api.MiraCore;
 import com.mira.core.api.MiraCoreProvider;
-import io.papermc.paper.chat.ChatRenderer;
 import io.papermc.paper.event.player.AsyncChatEvent;
-import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
@@ -22,7 +20,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Method;
-import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -49,26 +46,26 @@ public final class MiraChatItemsPlugin extends JavaPlugin implements Listener, C
         if (core != null) core.modules().unregister(this);
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onChat(AsyncChatEvent event) {
         String raw = PlainTextComponentSerializer.plainText().serialize(event.message());
         if (!containsToken(raw)) return;
 
-        // Let the server's normal chat stack finish configuring the renderer first,
-        // then intercept only messages containing MiraChatItems tokens.
         Player player = event.getPlayer();
-        ChatRenderer renderer = event.renderer();
-        Component displayName = player.displayName();
-        Set<Audience> viewers = new HashSet<>(event.viewers());
-
-        event.setCancelled(true);
-
-        Bukkit.getScheduler().runTask(this, () -> {
-            Component transformed = transformMessage(player, raw);
-            for (Audience viewer : viewers) {
-                viewer.sendMessage(renderer.render(player, displayName, transformed, viewer));
+        try {
+            Component transformed;
+            if (event.isAsynchronous()) {
+                transformed = Bukkit.getScheduler().callSyncMethod(this, () -> transformMessage(player, raw)).get();
+            } else {
+                transformed = transformMessage(player, raw);
             }
-        });
+
+            // Do not cancel, rebroadcast or replace the chat renderer.
+            // Only replace MiraChatItems tokens inside the player's message component.
+            event.message(transformed);
+        } catch (Exception ex) {
+            getLogger().warning("Could not transform chat tokens for " + player.getName() + ": " + ex.getMessage());
+        }
     }
 
     private Component transformMessage(Player player, String raw) {
