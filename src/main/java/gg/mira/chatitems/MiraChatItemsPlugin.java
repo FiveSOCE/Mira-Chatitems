@@ -2,6 +2,7 @@ package gg.mira.chatitems;
 
 import com.mira.core.api.MiraCore;
 import com.mira.core.api.MiraCoreProvider;
+import io.papermc.paper.chat.ChatRenderer;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
@@ -55,17 +56,14 @@ public final class MiraChatItemsPlugin extends JavaPlugin implements Listener, C
         event.setCancelled(true);
         Player player = event.getPlayer();
         Set<net.kyori.adventure.audience.Audience> viewers = new HashSet<>(event.viewers());
-        Bukkit.getScheduler().runTask(this, () -> sendLinkedMessage(player, raw, viewers));
+        ChatRenderer renderer = event.renderer();
+        Component displayName = player.displayName();
+        Bukkit.getScheduler().runTask(this, () -> sendLinkedMessage(player, raw, viewers, renderer, displayName));
     }
 
-    private void sendLinkedMessage(Player player, String raw, Set<net.kyori.adventure.audience.Audience> viewers) {
-        String trimmed = raw.trim();
-        boolean linkOnly = nextToken(trimmed, 0) != null && nextToken(trimmed, 0).start() == 0
-                && nextToken(trimmed, 0).end() == trimmed.length();
-
-        Component message = linkOnly
-                ? Component.empty()
-                : Component.text("<").append(player.displayName()).append(Component.text("> "));
+    private void sendLinkedMessage(Player player, String raw, Set<net.kyori.adventure.audience.Audience> viewers,
+                                   ChatRenderer renderer, Component displayName) {
+        Component message = Component.empty();
 
         int cursor = 0;
         while (cursor < raw.length()) {
@@ -97,7 +95,9 @@ public final class MiraChatItemsPlugin extends JavaPlugin implements Listener, C
             }
             cursor = match.end();
         }
-        for (var viewer : viewers) viewer.sendMessage(message);
+        for (var viewer : viewers) {
+            viewer.sendMessage(renderer.render(player, displayName, message, viewer));
+        }
     }
 
     private Component itemLink(ItemStack held) {
