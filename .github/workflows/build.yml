@@ -55,5 +55,5 @@ jobs:
             gh release create "$TAG" "$JAR" \
               --target "${{ github.sha }}" \
               --title "MiraChatItems $TAG" \
-              --notes "Preserves the server's existing chat renderer when replacing MiraChatItems tokens. Rank prefixes, nicknames, usernames and normal chat formatting remain intact; only [item], [inv], [echest] and [backpack] inside the message body are replaced with their MiraChatItems components."
+              --notes "Fixes chat integration so MiraChatItems no longer cancels and rebuilds the player's chat line. Tokens are now replaced inside the original message component while Paper's normal renderer continues handling prefixes, ranks, nicknames, username formatting and surrounding chat text."
           fi
