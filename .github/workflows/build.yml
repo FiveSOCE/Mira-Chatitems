@@ -55,5 +55,5 @@ jobs:
             gh release create "$TAG" "$JAR" \
               --target "${{ github.sha }}" \
               --title "MiraChatItems $TAG" \
-              --notes "Fixes chat formatting integration properly by wrapping Paper's existing ChatRenderer instead of replacing or resending the chat line. Prefixes, ranks, nicknames, suffixes and normal chat formatting remain owned by the active chat renderer, while [item] injects a native hoverable item name and inventory/ender chest links remain clickable inside the message body."
+              --notes "Fixes chat integration so MiraChatItems mutates only AsyncChatEvent.message instead of wrapping/replacing the chat renderer. Existing rank prefixes, nicknames, suffixes and channel formats remain untouched while [item] becomes the hoverable item name inline and storage tokens remain inline links."
           fi
