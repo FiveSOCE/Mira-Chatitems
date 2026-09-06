@@ -55,5 +55,5 @@ jobs:
             gh release create "$TAG" "$JAR" \
               --target "${{ github.sha }}" \
               --title "MiraChatItems $TAG" \
-              --notes "Preserves the server's normal chat renderer when expanding MiraChatItems tokens. Rank prefixes, nicknames, usernames, suffixes, channels, separators and chat formatting remain intact; only inline [item], [inv], [echest] and [backpack] tokens are transformed. [item] is hover-only with the native Minecraft item tooltip."
+              --notes "Fixes chat integration correctly: MiraChatItems no longer cancels or rebroadcasts chat and no longer invokes the chat renderer itself. It now only replaces [item], [inv], [echest] and [backpack] inside AsyncChatEvent.message(), preserving the server's existing prefix, rank, nickname, username and chat formatting."
           fi
