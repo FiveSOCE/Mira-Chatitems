@@ -55,5 +55,5 @@ jobs:
             gh release create "$TAG" "$JAR" \
               --target "${{ github.sha }}" \
               --title "MiraChatItems $TAG" \
-              --notes "Initial release: clickable view-only chat links for held items, inventories, ender chests and active MiraBackpacks. Supports [item], [inv], [inventory], [echest], [enderchest] and [backpack], with expiring snapshots and main-thread-safe inventory capture."
+              --notes "Polishes chat-link presentation. [item] is now hover-only using the native Minecraft item tooltip and renders as [Item Name]. Inventory links render with the player's nickname followed by [Inventory] in yellow, ender chest links use [Enderchest] in gold, and standalone link messages no longer duplicate the normal chat-name wrapper."
           fi
