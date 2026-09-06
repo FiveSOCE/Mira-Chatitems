@@ -11,8 +11,8 @@ repositories {
     maven("https://repo.papermc.io/repository/maven-public/")
 }
 
-val miraCoreVersion = "0.5.2"
-val miraCoreSha256 = "857611b2951a7a026ac7a9ec734e37f7764e33d84f05dec97a6736861d3af170"
+val miraCoreVersion = "0.5.3"
+val miraCoreSha256 = "b16b67a46e0c9e2860bfc770d05f63031fd2620bb9617d18ff4a6d69fa901601"
 val miraCoreJar = layout.projectDirectory.file("libs/MiraCore-$miraCoreVersion.jar").asFile
 
 fun sha256(file: File): String {
