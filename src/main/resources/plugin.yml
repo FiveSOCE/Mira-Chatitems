@@ -1,0 +1,16 @@
+name: MiraChatItems
+version: ${version}
+main: gg.mira.chatitems.MiraChatItemsPlugin
+api-version: '1.21'
+author: FiveSOCE
+description: Clickable view-only chat links for items, inventories, ender chests and backpacks.
+depend: [MiraCore]
+softdepend: [MiraBackpacks]
+commands:
+  chatitem:
+    description: View MiraChatItems links and usage.
+    usage: /chatitem
+    permission: mirachatitems.use
+permissions:
+  mirachatitems.use:
+    default: true
