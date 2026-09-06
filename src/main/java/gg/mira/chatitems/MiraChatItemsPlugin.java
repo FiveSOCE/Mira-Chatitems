@@ -2,7 +2,9 @@ package gg.mira.chatitems;
 
 import com.mira.core.api.MiraCore;
 import com.mira.core.api.MiraCoreProvider;
+import io.papermc.paper.chat.ChatRenderer;
 import io.papermc.paper.event.player.AsyncChatEvent;
+import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
@@ -22,7 +24,6 @@ import org.jetbrains.annotations.NotNull;
 import java.lang.reflect.Method;
 import java.time.Instant;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class MiraChatItemsPlugin extends JavaPlugin implements Listener, CommandExecutor {
@@ -53,34 +54,21 @@ public final class MiraChatItemsPlugin extends JavaPlugin implements Listener, C
         String raw = PlainTextComponentSerializer.plainText().serialize(event.message());
         if (!containsToken(raw)) return;
 
+        // Let the server's normal chat stack finish configuring the renderer first,
+        // then intercept only messages containing MiraChatItems tokens.
         Player player = event.getPlayer();
-        Component transformed;
+        ChatRenderer renderer = event.renderer();
+        Component displayName = player.displayName();
+        Set<Audience> viewers = new HashSet<>(event.viewers());
 
-        // Inventory/item access must stay on the primary thread even though
-        // Paper's chat event is normally asynchronous.
-        if (Bukkit.isPrimaryThread()) {
-            transformed = transformMessage(player, raw);
-        } else {
-            CompletableFuture<Component> future = new CompletableFuture<>();
-            Bukkit.getScheduler().runTask(this, () -> {
-                try {
-                    future.complete(transformMessage(player, raw));
-                } catch (Throwable throwable) {
-                    future.completeExceptionally(throwable);
-                }
-            });
-            try {
-                transformed = future.join();
-            } catch (RuntimeException exception) {
-                getLogger().warning("Could not transform chat link safely: " + exception.getMessage());
-                return;
+        event.setCancelled(true);
+
+        Bukkit.getScheduler().runTask(this, () -> {
+            Component transformed = transformMessage(player, raw);
+            for (Audience viewer : viewers) {
+                viewer.sendMessage(renderer.render(player, displayName, transformed, viewer));
             }
-        }
-
-        // Run after chat-format plugins such as EssentialsChat have finished
-        // configuring the renderer. We replace only the message body; the
-        // renderer still owns prefix, nickname, suffix, channels and recipients.
-        event.message(transformed);
+        });
     }
 
     private Component transformMessage(Player player, String raw) {
