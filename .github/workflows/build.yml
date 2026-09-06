@@ -55,5 +55,5 @@ jobs:
             gh release create "$TAG" "$JAR" \
               --target "${{ github.sha }}" \
               --title "MiraChatItems $TAG" \
-              --notes "Fixes chat-item integration correctly: MiraChatItems now changes only AsyncChatEvent.message and leaves the existing chat renderer untouched. Rank prefixes, nickname, suffix/channel formatting and normal chat layout remain intact. Example: [Owner] FiveS_OCE [GG]: [Pyro Axe], where only [Pyro Axe] is replaced and carries the native item hover tooltip."
+              --notes "Fixes EssentialsChat compatibility. MiraChatItems now applies token component replacements at the final Paper chat-event stage after chat-format plugins configure their renderer, preserving rank prefixes, nicknames, suffixes, channels and normal recipients while still replacing [item], [inv], [echest] and [backpack]. Essentials and EssentialsChat are declared soft dependencies for deterministic load ordering."
           fi
