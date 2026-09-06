@@ -48,7 +48,7 @@ public final class MiraChatItemsPlugin extends JavaPlugin implements Listener, C
         if (core != null) core.modules().unregister(this);
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onChat(AsyncChatEvent event) {
         String raw = PlainTextComponentSerializer.plainText().serialize(event.message());
         if (!containsToken(raw)) return;
@@ -77,10 +77,9 @@ public final class MiraChatItemsPlugin extends JavaPlugin implements Listener, C
             }
         }
 
-        // Preserve the server's normal chat renderer completely. We mutate only
-        // the player's message body, so ranks, prefixes, nicknames, suffixes,
-        // channels and any other chat formatting remain owned by the existing
-        // chat stack.
+        // Run after chat-format plugins such as EssentialsChat have finished
+        // configuring the renderer. We replace only the message body; the
+        // renderer still owns prefix, nickname, suffix, channels and recipients.
         event.message(transformed);
     }
 
