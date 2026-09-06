@@ -55,5 +55,5 @@ jobs:
             gh release create "$TAG" "$JAR" \
               --target "${{ github.sha }}" \
               --title "MiraChatItems $TAG" \
-              --notes "Fixes chat integration so MiraChatItems mutates only AsyncChatEvent.message instead of wrapping/replacing the chat renderer. Existing rank prefixes, nicknames, suffixes and channel formats remain untouched while [item] becomes the hoverable item name inline and storage tokens remain inline links."
+              --notes "Fixes chat-item integration correctly: MiraChatItems now changes only AsyncChatEvent.message and leaves the existing chat renderer untouched. Rank prefixes, nickname, suffix/channel formatting and normal chat layout remain intact. Example: [Owner] FiveS_OCE [GG]: [Pyro Axe], where only [Pyro Axe] is replaced and carries the native item hover tooltip."
           fi
