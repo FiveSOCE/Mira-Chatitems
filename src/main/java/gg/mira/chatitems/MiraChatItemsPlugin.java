@@ -2,7 +2,6 @@ package gg.mira.chatitems;
 
 import com.mira.core.api.MiraCore;
 import com.mira.core.api.MiraCoreProvider;
-import io.papermc.paper.chat.ChatRenderer;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
@@ -23,6 +22,7 @@ import org.jetbrains.annotations.NotNull;
 import java.lang.reflect.Method;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class MiraChatItemsPlugin extends JavaPlugin implements Listener, CommandExecutor {
@@ -53,16 +53,35 @@ public final class MiraChatItemsPlugin extends JavaPlugin implements Listener, C
         String raw = PlainTextComponentSerializer.plainText().serialize(event.message());
         if (!containsToken(raw)) return;
 
-        event.setCancelled(true);
         Player player = event.getPlayer();
-        Set<net.kyori.adventure.audience.Audience> viewers = new HashSet<>(event.viewers());
-        ChatRenderer renderer = event.renderer();
-        Component displayName = player.displayName();
-        Bukkit.getScheduler().runTask(this, () -> sendLinkedMessage(player, raw, viewers, renderer, displayName));
+
+        // Preserve Paper's normal chat pipeline completely. We only replace the
+        // token inside the message component, so prefixes, nicknames, ranks,
+        // formatting and any renderer supplied by another chat plugin remain.
+        Component transformed;
+        if (Bukkit.isPrimaryThread()) {
+            transformed = transformMessage(player, raw);
+        } else {
+            CompletableFuture<Component> future = new CompletableFuture<>();
+            Bukkit.getScheduler().runTask(this, () -> {
+                try {
+                    future.complete(transformMessage(player, raw));
+                } catch (Throwable throwable) {
+                    future.completeExceptionally(throwable);
+                }
+            });
+            try {
+                transformed = future.join();
+            } catch (RuntimeException exception) {
+                getLogger().warning("Could not transform chat link safely: " + exception.getMessage());
+                return;
+            }
+        }
+
+        event.message(transformed);
     }
 
-    private void sendLinkedMessage(Player player, String raw, Set<net.kyori.adventure.audience.Audience> viewers,
-                                   ChatRenderer renderer, Component displayName) {
+    private Component transformMessage(Player player, String raw) {
         Component message = Component.empty();
 
         int cursor = 0;
@@ -95,9 +114,7 @@ public final class MiraChatItemsPlugin extends JavaPlugin implements Listener, C
             }
             cursor = match.end();
         }
-        for (var viewer : viewers) {
-            viewer.sendMessage(renderer.render(player, displayName, message, viewer));
-        }
+        return message;
     }
 
     private Component itemLink(ItemStack held) {
