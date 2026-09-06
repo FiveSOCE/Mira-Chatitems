@@ -2,7 +2,6 @@ package gg.mira.chatitems;
 
 import com.mira.core.api.MiraCore;
 import com.mira.core.api.MiraCoreProvider;
-import io.papermc.paper.chat.ChatRenderer;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
@@ -78,13 +77,11 @@ public final class MiraChatItemsPlugin extends JavaPlugin implements Listener, C
             }
         }
 
-        // Critical: do not replace/cancel/resend the chat line. Wrap whatever
-        // renderer is already responsible for ranks, prefixes, nicknames,
-        // suffixes and the normal ': message' format, and only substitute the
-        // message component that renderer receives.
-        ChatRenderer original = event.renderer();
-        event.renderer((source, sourceDisplayName, ignoredMessage, viewer) ->
-                original.render(source, sourceDisplayName, transformed, viewer));
+        // Preserve the server's normal chat renderer completely. We mutate only
+        // the player's message body, so ranks, prefixes, nicknames, suffixes,
+        // channels and any other chat formatting remain owned by the existing
+        // chat stack.
+        event.message(transformed);
     }
 
     private Component transformMessage(Player player, String raw) {
