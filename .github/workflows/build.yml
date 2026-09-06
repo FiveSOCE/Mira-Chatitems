@@ -55,5 +55,5 @@ jobs:
             gh release create "$TAG" "$JAR" \
               --target "${{ github.sha }}" \
               --title "MiraChatItems $TAG" \
-              --notes "Fixes EssentialsChat compatibility by applying rich chat-token replacements after chat-format plugins configure the Paper renderer. MiraChatItems now preserves the player's existing rank prefix, nickname, suffix, channel format and recipients while replacing only [item], [inv], [echest] and [backpack]. Essentials and EssentialsChat are declared soft dependencies for deterministic ordering."
+              --notes "Fixes EssentialsChat compatibility for real. MiraChatItems now applies rich token replacements at MONITOR after chat-format plugins have configured the Paper renderer, while Essentials and EssentialsChat are declared soft dependencies for deterministic load ordering. Prefixes, ranks, nicknames, suffixes, channels and recipients remain untouched."
           fi
