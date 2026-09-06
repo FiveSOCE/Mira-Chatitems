@@ -1,0 +1,2 @@
+# Chat snapshots expire to prevent old links from retaining inventory copies indefinitely.
+snapshot-minutes: 5
