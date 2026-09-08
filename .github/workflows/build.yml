@@ -1,59 +1,47 @@
 name: Build
-
 on:
   push:
-    branches:
-      - main
-      - 'release/**'
+    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
-
 permissions:
   contents: write
-
 jobs:
-  build:
+  compatibility-1-21-11:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '21'
+        with: { distribution: temurin, java-version: '21' }
       - uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.10'
-
-      - name: Resolve version
-        id: version
-        shell: bash
-        run: |
-          VERSION=$(sed -n 's/^version = "\([^"]*\)"/\1/p' build.gradle.kts | head -n1)
-          test -n "$VERSION"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-
-      - name: Build
-        run: gradle clean build --stacktrace
-
+        with: { gradle-version: '8.10' }
+      - run: gradle clean test compileJava -PpaperApiVersion=1.21.11-R0.1-SNAPSHOT -PcompileJavaVersion=21 -PbytecodeJavaVersion=21 --stacktrace
+  compatibility-26-2:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '25' }
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: '9.1.0' }
+      - run: gradle clean test compileJava -PpaperApiVersion=26.2.build.121-stable -PcompileJavaVersion=25 -PbytecodeJavaVersion=25 --stacktrace
+  build:
+    needs: [compatibility-1-21-11, compatibility-26-2]
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '21' }
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: '8.10' }
+      - run: gradle clean test build -PpaperApiVersion=1.21.11-R0.1-SNAPSHOT -PcompileJavaVersion=21 -PbytecodeJavaVersion=21 --stacktrace
       - uses: actions/upload-artifact@v4
-        if: success()
-        with:
-          name: MiraChatItems-${{ steps.version.outputs.version }}
-          path: build/libs/MiraChatItems-${{ steps.version.outputs.version }}.jar
-          if-no-files-found: error
-
-      - name: Publish release branch
-        if: success() && startsWith(github.ref, 'refs/heads/release/')
-        env:
-          GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ steps.version.outputs.version }}
+        with: { name: MiraChatItems-0.1.8, path: build/libs/MiraChatItems-0.1.8.jar, if-no-files-found: error }
+      - name: Publish release
+        if: success() && github.ref == 'refs/heads/main'
+        env: { GH_TOKEN: ${{ github.token }} }
         run: |
-          TAG="v$VERSION"
-          JAR="build/libs/MiraChatItems-$VERSION.jar"
-          if ! gh release view "$TAG" >/dev/null 2>&1; then
-            gh release create "$TAG" "$JAR" \
-              --target "${{ github.sha }}" \
-              --title "MiraChatItems $TAG" \
-              --notes "Fixes chat integration correctly: MiraChatItems no longer cancels or rebroadcasts chat and no longer invokes the chat renderer itself. It now only replaces [item], [inv], [echest] and [backpack] inside AsyncChatEvent.message(), preserving the server's existing prefix, rank, nickname, username and chat formatting."
-          fi
+          TAG="v0.1.8"; JAR="build/libs/MiraChatItems-0.1.8.jar"
+          if gh release view "$TAG" >/dev/null 2>&1; then gh release upload "$TAG" "$JAR" --clobber; else gh release create "$TAG" "$JAR" --target "${{ github.sha }}" --title "MiraChatItems v0.1.8" --notes "Compatibility release: one JAR supporting Paper/Minecraft 1.21.11 through 26.2. CI verifies both API endpoints; production bytecode remains Java 21 compatible."; fi
