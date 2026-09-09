@@ -1,3 +1,9 @@
+## Download
+
+Latest compatibility release (v0.1.8):
+
+https://github.com/FiveSOCE/Mira-Chatitems/releases/download/v0.1.8/MiraChatItems-0.1.8.jar
+
 # MiraChatItems
 
 Clickable, view-only chat links for player items and storage.
